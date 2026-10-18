@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<script>
+!(function(j,a,g){j.__itrace_conf = {bid: 'f43basl8-6nqu7l3w',rel: '0.0.1', spa: true, uid: '', plugins:['jserror','interface','perf','resource','flow','blank']};var b = a.createElement("script");var d = a.getElementsByTagName("script")[0];b.type = "text/javascript";b.crossorigin = true;b.async = true;b.onload = function(){j.__itrace && j.__itrace.setReady()};d.parentNode.insertBefore(b,d);b.src = g})(window, document, "https://g.alicdn.com/woodpeckerx/itrace-next/itrace.iife.js")
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>NFC工具清点</title>
+<meta name="theme-color" content="#1a1a2e">
+<link rel="manifest" href="manifest.json">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;background:#1a1a2e;color:#e0e0e0;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+
+/* 顶栏 */
+.hd{padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top));background:#16213e;border-bottom:1px solid #0f3460;text-align:center;flex-shrink:0}
+.hd h1{font-size:18px;font-weight:700;color:#e0e0e0}
+
+/* 状态条 */
+.sbar{display:flex;align-items:center;gap:10px;padding:10px 16px;margin:12px 16px 0;background:#16213e;border-radius:10px;border:1px solid #0f3460}
+.sdot{width:10px;height:10px;border-radius:50%;background:#334155;flex-shrink:0;transition:background .3s}
+.sdot.on{background:#00d4aa;animation:pulse 1.2s infinite}
+.sdot.chk{background:#f59e0b;animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.stxt{flex:1;font-size:13px;color:#94a3b8}
+.stxt.on{color:#00d4aa}
+.stxt.chk{color:#f59e0b}
+.scnt{font-size:20px;font-weight:800;color:#e0e0e0;font-variant-numeric:tabular-nums;flex-shrink:0}
+
+/* 按钮区 */
+.btns{display:flex;gap:8px;padding:10px 16px;flex-wrap:wrap;flex-shrink:0}
+.btn{flex:1;min-width:0;padding:14px 8px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;min-height:48px;transition:transform .1s,opacity .2s;display:flex;align-items:center;justify-content:center;gap:4px}
+.btn:active:not(:disabled){transform:scale(.96)}
+.btn:disabled{opacity:.25;cursor:not-allowed}
+.b-rec{background:#0f3460;color:#00d4aa;border:1px solid #00d4aa}
+.b-end{background:#ef4444;color:#fff}
+.b-chk{background:#f59e0b;color:#1a1a2e}
+.b-clr{background:transparent;color:#94a3b8;border:1px solid #334155;font-size:13px}
+
+/* 滚动区 */
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px 16px}
+
+/* 表格 */
+.tbl{margin-top:10px;border-radius:10px;overflow:hidden;border:1px solid #0f3460}
+.tbl-hd{display:flex;background:#16213e;padding:10px 12px}
+.tbl-col{flex:1;text-align:center;font-size:13px;font-weight:700}
+.tbl-col-l{color:#00d4aa}
+.tbl-col-r{color:#f59e0b}
+.tbl-div{width:1px;background:#0f3460;margin:0 6px}
+.tbl-bd{background:#0d1b3e;max-height:45vh;overflow-y:auto}
+.row{display:flex;padding:9px 12px;border-top:1px solid rgba(15,52,96,.5);align-items:center;min-height:38px;transition:all .5s ease}
+.row.hide{opacity:0;max-height:0;padding:0 12px;min-height:0;overflow:hidden;border:none}
+.cell{flex:1;font-size:13px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:2px 0}
+.cell-l{color:#e0e0e0}
+.cell-r{color:#f59e0b}
+.cell-miss{color:#ef4444;font-weight:600}
+.cell-done{color:#334155;font-size:11px}
+.tbl-div-cell{width:1px;background:#0f3460;margin:0 6px;flex-shrink:0;align-self:stretch}
+.empty{text-align:center;padding:28px 16px;color:#475569;font-size:13px;line-height:1.7}
+
+/* 统计 */
+.stats{display:flex;justify-content:space-around;padding:12px;margin-top:10px;background:#16213e;border-radius:10px;border:1px solid #0f3460}
+.st{text-align:center}
+.st-n{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+.st-l{font-size:11px;color:#64748b;margin-top:2px}
+.n-ok{color:#00d4aa}.n-miss{color:#ef4444}.n-total{color:#00d4aa}
+
+/* 提示 */
+.bwarn{display:none;background:#7c2d12;border:1px solid #9a3412;border-radius:10px;padding:12px;margin:12px 16px 0}
+.bwarn.show{display:block}
+.bwarn-t{font-size:14px;font-weight:700;color:#fed7aa;margin-bottom:4px}
+.bwarn-d{font-size:12px;color:#fdba74;line-height:1.6}
+
+/* 安装条 */
+.ibar{display:none;align-items:center;gap:10px;padding:10px 14px;margin:12px 16px 0;background:#1e3a5f;border:1px solid #1e40af;border-radius:10px;cursor:pointer}
+.ibar.show{display:flex}
+.ibar-t{font-size:13px;font-weight:600;color:#93c5fd}
+.ibar-s{font-size:11px;color:#60a5fa;margin-top:2px}
+.ibar-btn{background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0}
+
+/* 说明 */
+.info{margin-top:14px;padding-top:12px;border-top:1px solid #0f3460}
+.inf-b{margin-bottom:10px}
+.inf-b h3{font-size:11px;font-weight:600;color:#64748b;margin-bottom:3px}
+.inf-b p{font-size:11px;color:#475569;line-height:1.6}
+.hl{color:#f59e0b;font-weight:600}
+
+/* toast */
+.tw{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:999;pointer-events:none}
+.tm{background:#16213e;color:#e0e0e0;padding:8px 18px;border-radius:8px;font-size:12px;border:1px solid #0f3460;box-shadow:0 4px 14px rgba(0,0,0,.4);opacity:0;transform:translateY(-6px);transition:all .3s}
+.tm.show{opacity:1;transform:translateY(0)}
+.tm.ok{border-color:rgba(0,212,170,.4);color:#00d4aa}
+.tm.err{border-color:rgba(239,68,68,.4);color:#f87171}
+
+@media(min-width:768px){.scroll,.btns,.sbar,.bwarn,.ibar{max-width:520px;margin-left:auto;margin-right:auto}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="hd"><h1>🔧 NFC 工具清点</h1></div>
+
+<div class="bwarn" id="bwarn">
+<div class="bwarn-t">⚠️ 当前浏览器不支持 NFC</div>
+<div class="bwarn-d">请使用 Chrome、Edge、三星浏览器、Brave 或 Opera。Safari / Firefox / UC / QQ 不支持。</div>
+</div>
+
+<div class="ibar" id="ibar">
+<div style="font-size:22px">📲</div>
+<div style="flex:1"><div class="ibar-t">安装到手机桌面</div><div class="ibar-s">全屏运行，像原生App一样</div></div>
+<button class="ibar-btn" id="installBtn">安装</button>
+</div>
+
+<div class="sbar">
+<div class="sdot" id="sDot"></div>
+<div class="stxt" id="sTxt">准备就绪</div>
+<div class="scnt" id="sCnt">0</div>
+</div>
+
+<!-- SECTION: buttons -->
+<div class="btns" id="btnArea">
+<button class="btn b-rec" id="btnRec">📋 记录</button>
+<button class="btn b-end" id="btnEnd1" style="display:none">⏹ 结束</button>
+<button class="btn b-chk" id="btnChk" style="display:none">🔍 清点</button>
+<button class="btn b-end" id="btnEnd2" style="display:none">⏹ 结束</button>
+<button class="btn b-clr" id="btnClr" style="display:none">🗑 清空</button>
+</div>
+
+<div class="scroll">
+
+<!-- SECTION: table -->
+<div class="tbl" id="tblArea" style="display:none">
+<div class="tbl-hd">
+<div class="tbl-col tbl-col-l">📋 记录 (<span id="hdL">0</span>)</div>
+<div class="tbl-div"></div>
+<div class="tbl-col tbl-col-r">🔍 清点 (<span id="hdR">0</span>)</div>
+</div>
+<div class="tbl-bd" id="tblBody"></div>
+</div>
+
+<!-- SECTION: stats -->
+<div class="stats" id="statsArea" style="display:none">
+<div class="st"><div class="st-n n-total" id="stTotal">0</div><div class="st-l">记录总数</div></div>
+<div class="st"><div class="st-n n-ok" id="stOk">0</div><div class="st-l">已清点</div></div>
+<div class="st"><div class="st-n n-miss" id="stMiss">0</div><div class="st-l">遗漏</div></div>
+</div>
+
+<!-- SECTION: info -->
+<div class="info">
+<div class="inf-b"><h3>📌 使用方法</h3>
+<p>1. NFC编辑器给每张215贴纸写入工具名称（NDEF Text格式）<br>2. 点「记录」→ 逐一贴触 → 点「结束」<br>3. 点「清点」→ 逐一贴触 → 匹配项实时从两侧消失<br>4. 点「结束」查看遗漏 · 点「清空」重新开始</p></div>
+<div class="inf-b"><h3>📱 浏览器要求</h3>
+<p>需要 <span class="hl">Chromium 内核浏览器</span>：Chrome / Edge / 三星 / Brave / Opera。建议安装到桌面。</p></div>
+</div>
+
+</div><!-- /scroll -->
+</div><!-- /app -->
+
+<div class="tw" id="tw"><div class="tm" id="tm"></div></div>
+
+<script>
+'use strict';
+var PHASE='idle',rec=[],chk=[],matchIds={},ndef=null,scanning=false,lastTs=0,CD=300,aCtx=null,ipEvt=null;
+
+function $(id){return document.getElementById(id)}
+function escH(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function initA(){if(!aCtx)try{aCtx=new(window.AudioContext||window.webkitAudioContext)}catch(e){}}
+function beep(f,d){if(!aCtx)return;try{var o=aCtx.createOscillator(),g=aCtx.createGain();o.connect(g);g.connect(aCtx.destination);o.frequency.value=f;o.type='sine';g.gain.setValueAtTime(.1,aCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,aCtx.currentTime+d);o.start();o.stop(aCtx.currentTime+d)}catch(e){}}
+function vib(p){try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}}
+var tTmr=null;
+function toast(t,tp){var el=$('tm');el.textContent=t;el.className='tm'+(tp?' '+tp:'');void el.offsetWidth;el.classList.add('show');clearTimeout(tTmr);tTmr=setTimeout(function(){el.classList.remove('show')},1600)}
+
+function tagId(sn,name){if(name&&name.length>0)return'n:'+name;if(sn&&sn.length>0)return's:'+sn.join('-');return'u:'+Date.now()+'-'+Math.random().toString(36).slice(2,6)}
+
+function updUI(){
+  var dot=$('sDot'),txt=$('sTxt'),cnt=$('sCnt');
+  dot.className='sdot';txt.className='stxt';
+  switch(PHASE){
+    case'idle':txt.textContent='准备就绪';cnt.textContent='0';break;
+    case'recording':dot.classList.add('on');txt.classList.add('on');txt.textContent='正在记录…贴触NFC标签';cnt.textContent=rec.length;break;
+    case'recorded':txt.textContent='记录完成 · '+rec.length+'件';cnt.textContent=rec.length;break;
+    case'checking':dot.classList.add('chk');txt.classList.add('chk');txt.textContent='正在清点…贴触NFC标签';cnt.textContent=chk.length;break;
+    case'done':var m=0;for(var i=0;i<rec.length;i++)if(!matchIds[rec[i].id])m++;txt.textContent='清点完成';cnt.textContent=m>0?'遗漏'+m:'✓全齐';break;
+  }
+  // buttons
+  $('btnRec').style.display=PHASE==='idle'?'flex':'none';
+  $('btnEnd1').style.display=PHASE==='recording'?'flex':'none';
+  $('btnChk').style.display=PHASE==='recorded'?'flex':'none';
+  $('btnEnd2').style.display=PHASE==='checking'?'flex':'none';
+  $('btnClr').style.display=(PHASE==='recorded'||PHASE==='done')?'flex':'none';
+  renderTbl();
+}
+
+function renderTbl(){
+  var area=$('tblArea'),body=$('tblBody'),sts=$('statsArea');
+  if(PHASE==='idle'){area.style.display='none';sts.style.display='none';return}
+  area.style.display='block';
+  var total=rec.length,mc=Object.keys(matchIds).length,miss=total-mc;
+  $('hdL').textContent=total;
+  $('hdR').textContent=(PHASE==='checking'||PHASE==='done')?chk.length:'—';
+
+  // 构建清点副本
+  var cc=[];for(var c=0;c<chk.length;c++)cc.push({id:chk[c].id,name:chk[c].name,used:false});
+
+  var h='';
+  for(var i=0;i<rec.length;i++){
+    var r=rec[i],matched=!!matchIds[r.id],cls=matched?'row hide':'row';
+    var rn='';
+    if(matched){for(var j=0;j<cc.length;j++){if(!cc[j].used&&cc[j].id===r.id){rn=cc[j].name;cc[j].used=true;break}}}
+    h+='<div class="'+cls+'">';
+    h+='<div class="cell '+(matched?'cell-done':'cell-l')+'">'+(matched?'✓ ':'')+escH(r.name)+'</div>';
+    h+='<div class="tbl-div-cell"></div>';
+    h+='<div class="cell '+(matched?'cell-done':(rn?'cell-r':'cell-miss'))+'">';
+    h+=matched?(rn?'✓ '+escH(rn):'—'):(rn?escH(rn):'—');
+    h+='</div></div>';
+  }
+  if(!rec.length)h='<div class="empty">暂无记录</div>';
+  body.innerHTML=h;
+
+  if(PHASE==='checking'||PHASE==='done'){sts.style.display='flex';$('stTotal').textContent=total;$('stOk').textContent=mc;$('stMiss').textContent=miss}
+  else sts.style.display='none';
+}
+
+async function startNFC(){
+  if(scanning)return;initA();
+  if(!('NDEFReader' in window)){toast('浏览器不支持NFC','err');return}
+  try{ndef=new NDEFReader();await ndef.scan();scanning=true;ndef.onreading=onRead;ndef.onreadingerror=function(){}}
+  catch(e){var m='NFC启动失败';if(e.name==='NotAllowedError')m='请授权NFC权限';else if(e.name==='NotSupportedError')m='设备不支持NFC';toast(m,'err')}
+}
+
+function stopNFC(){scanning=false;try{if(ndef){ndef.onreading=null;ndef.onreadingerror=null}}catch(e){}ndef=null}
+
+function onRead(ev){
+  var now=Date.now();if(now-lastTs<CD)return;lastTs=now;
+  var sn=ev.serialNumber||'',recs=ev.message&&ev.message.records?ev.message.records:[],name='';
+  for(var i=0;i<recs.length;i++){try{var r=recs[i];if(r.recordType==='text'&&r.data){name=(typeof r.data==='string')?r.data:new TextDecoder('utf-8').decode(r.data);if(name)break}}catch(e){}}
+  if(!name)name=sn?'UID:'+sn:'标签'+now.toString(36);
+  name=name.trim();var id=tagId(sn,name);
+
+  if(PHASE==='recording'){
+    for(var j=0;j<rec.length;j++)if(rec[j].id===id)return;
+    rec.push({id:id,name:name,ts:Date.now()});
+    vib([60]);beep(880,.1);toast('记录: '+name,'ok');updUI();
+  }else if(PHASE==='checking'){
+    for(var k=0;k<chk.length;k++)if(chk[k].id===id)return;
+    var hit=false;
+    for(var m=0;m<rec.length;m++){if(rec[m].id===id&&!matchIds[id]){matchIds[id]=true;hit=true;break}}
+    chk.push({id:id,name:name,ts:Date.now()});
+    vib([60]);
+    if(hit){beep(1047,.15);toast('✓ '+name,'ok')}else{beep(440,.2);toast('⚠ 新标签: '+name,'err')}
+    updUI();
+  }
+}
+
+// 5个按钮事件
+$('btnRec').onclick=function(){PHASE='recording';rec=[];chk=[];matchIds={};startNFC();updUI()};
+$('btnEnd1').onclick=function(){stopNFC();PHASE='recorded';updUI();rec.length?toast('已记录'+rec.length+'件','ok'):toast('未记录到标签','err')};
+$('btnChk').onclick=function(){PHASE='checking';chk=[];matchIds={};startNFC();updUI()};
+$('btnEnd2').onclick=function(){stopNFC();PHASE='done';updUI();var m=0;for(var i=0;i<rec.length;i++)if(!matchIds[rec[i].id])m++;m===0?(toast('全部到齐！','ok'),beep(1047,.25)):(toast('遗漏'+m+'件','err'),beep(440,.3))};
+$('btnClr').onclick=function(){PHASE='idle';rec=[];chk=[];matchIds={};updUI();toast('已清空','ok')};
+
+// PWA
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();ipEvt=e;$('ibar').classList.add('show')});
+$('installBtn').onclick=async function(){if(!ipEvt)return;ipEvt.prompt();var r=await ipEvt.userChoice;if(r.outcome==='accepted'){$('ibar').classList.remove('show');toast('已安装','ok')}ipEvt=null};
+window.addEventListener('appinstalled',function(){$('ibar').classList.remove('show')});
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(function(){});
+
+// init
+(function(){if('NDEFReader' in window)$('bwarn').classList.remove('show');else{$('bwarn').classList.add('show');$('btnRec').disabled=true}updUI()})();
+</script>
+</body>
+</html>

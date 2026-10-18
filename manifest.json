@@ -1,0 +1,18 @@
+{
+  "name": "NFC工具清点",
+  "short_name": "NFC清点",
+  "description": "NFC贴纸工具清点，记录与清点实时对比，遗漏一目了然",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='96' fill='%231a1a2e'/><text x='256' y='340' font-size='260' text-anchor='middle' fill='%2300d4aa'>🔧</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
